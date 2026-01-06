@@ -13,7 +13,7 @@ CLI helper that drafts Conventional Commits from your staged diffs using the Per
 	- Verify: `echo $PERPLEXITY_API_KEY`
 
 ## Usage
-1. Stage changes in the target repo: `git add ...`
+1. Stage changes in the target repo: `git add .`
 2. Run the CLI from anywhere, pointing at that repo path: `cgm <path-to-repo>`
 3. Review the generated Conventional Commit message; enter `y` to commit, anything else to skip.
 
