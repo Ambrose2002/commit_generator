@@ -11,7 +11,7 @@ import sys
 MODEL = "sonar-pro"
 
 
-def run(file_path: str) -> str:
+def run(file_path: str) -> tuple[bool, str]:
     """
     Execute the commit message generation workflow.
 
@@ -24,16 +24,16 @@ def run(file_path: str) -> str:
     """
     print("Getting diff...")
     success, diffs = get_diff(file_path)
-
+    
     if not success or not diffs:
-        return "No diffs found"
+        return False, "No diffs found"
 
     print("Getting commit message...")
     success, message = generate_commit(diffs, model_name=MODEL)
 
     if success:
-        return message
-    return ""
+        return True, message
+    return False, ""
 
 
 def main() -> int:
@@ -44,10 +44,11 @@ def main() -> int:
         return 1
 
     file_path = sys.argv[1]
-    message = run(file_path)
+    success, message = run(file_path)
 
-    if not len(message):
-        print("Error: commit message generation failed")
+    if not success:
+        print(message)
+        print("Exiting...")
         return 1
 
     print("Message: \n")
