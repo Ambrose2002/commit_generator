@@ -34,25 +34,35 @@ def run(file_path: str) -> str:
     return ""
 
 
-if __name__ == "__main__":
+def main() -> int:
+    """Run the CLI end-to-end from argument parsing through commit."""
 
     if len(sys.argv) != 2:
-        print("Usage: python app.py <directory>")
-    else:
-        file_path = sys.argv[1]
-        message = run(file_path)
-        
-        if len(message):
-            print(message)
-            response = input("Do you want to commit with this message? y/n: ")
-            if response.lower() == "y":
-                print("Commiting changes...")
-                success, msg = commit_changes(file_path, message)
-                if success:
-                    print("Changes commited")
-                else:
-                    print("Error: commit failed")
-            else:
-                print("Commit ignored")
+        print("Usage: commit-generator <directory>")
+        return 1
+
+    file_path = sys.argv[1]
+    message = run(file_path)
+
+    if not len(message):
+        print("Error: commit message generation failed")
+        return 1
+
+    print(message)
+    response = input("Do you want to commit with this message? y/n: ")
+    if response.lower() == "y":
+        print("Commiting changes...")
+        success, msg = commit_changes(file_path, message)
+        if success:
+            print("Changes commited")
+            return 0
         else:
-            print("Error: commit message generated")
+            print("Error: commit failed")
+            return 1
+
+    print("Commit ignored")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
