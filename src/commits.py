@@ -1,10 +1,21 @@
-from langchain_ollama import OllamaLLM
-from langchain_core.prompts import ChatPromptTemplate
+from perplexity import Perplexity, BadRequestError, RateLimitError, APIStatusError
 
 
-def generate_promt(diffs: str):
+def generate_prompt(diffs: str) -> str:
+    """Generate a prompt template for creating a Conventional Commits message from git diffs.
 
-    template = """You are a senior software engineer. Write a single commit message following Conventional Commits, based only on the provided git diff.
+    This function constructs a detailed prompt instruction that guides an AI model
+    to analyze git diffs and produce a properly formatted commit message following
+    the Conventional Commits specification.
+
+    Args:
+        diffs (str): The git diff content to be analyzed for generating the commit message.
+
+    Returns:
+        str: A formatted prompt template containing instructions for generating a commit message
+             with the following specifications:
+    """
+    template = f"""You are a senior software engineer. Write a single commit message following Conventional Commits, based only on the provided git diff.
 
         Input:
         - diffs: {diffs}
@@ -24,14 +35,47 @@ def generate_promt(diffs: str):
         - Return only the commit message text.
     """
 
-    return ChatPromptTemplate.from_template(template)
+    return template
 
-def generate_commit(diffs: str, model_name: str, f: str = ""):
-    
-    model = OllamaLLM(model = model_name, format=f)  # type: ignore
-    
-    chain = generate_promt(diffs) | model
-    
-    return chain.invoke
 
-print(generate_commit("Hello", "llama3.1"))
+def generate_commit(diffs: str, model_name: str = "sonar-pro"):
+    """
+    Generate a commit message using the Perplexity API based on provided diffs.
+    
+    Args:
+        diffs (str): The diff content to generate a commit message for.
+        model_name (str, optional): The model to use for generation. Defaults to "sonar-pro".
+    
+    Returns:
+        str: The generated commit message on success.
+        tuple: A tuple of (False, error_message) if a BadRequestError, RateLimitError, or APIStatusError occurs.
+    
+    Raises:
+        Handles BadRequestError, RateLimitError, and APIStatusError internally and returns False with error message.
+    """
+
+    # Initialize the client (uses PERPLEXITY_API_KEY environment variable)
+    client = Perplexity()
+
+    template = generate_prompt(diffs)
+
+    try:
+        # Make the API call
+        completion = client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "user", "content": template}],
+            stream=False,
+        )
+        return completion.choices[0].message.content
+
+    except BadRequestError as e:
+        return False, str(e)
+
+    except RateLimitError as e:
+        return False, str(e)
+
+    except APIStatusError as e:
+        return False, str(e)
+
+
+print(generate_commit("+Hello"))
