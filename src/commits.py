@@ -1,6 +1,9 @@
-from perplexity import Perplexity, BadRequestError, RateLimitError, APIStatusError
+# from perplexity import Perplexity, BadRequestError, RateLimitError, APIStatusError
+from langchain_ollama import OllamaLLM
+from langchain_core.prompts import ChatPromptTemplate
 
-def _generate_prompt(diffs: str) -> str:
+
+def _generate_prompt(diffs: str):
     """Generate a prompt template for creating a Conventional Commits message from git diffs.
 
     This function constructs a detailed prompt instruction that guides an AI model
@@ -14,7 +17,7 @@ def _generate_prompt(diffs: str) -> str:
         str: A formatted prompt template containing instructions for generating a commit message
              with the following specifications:
     """
-    template = f"""You are a senior software engineer. Write a single commit message following Conventional Commits, based only on the provided git diff.
+    template = """You are a senior software engineer. Write a single commit message following Conventional Commits, based only on the provided git diff.
 
         Input:
         - diffs: {diffs}
@@ -36,7 +39,8 @@ def _generate_prompt(diffs: str) -> str:
 
     """
 
-    return template
+    return ChatPromptTemplate.from_messages([("human", template)])
+
 
 def _strip_surrounding_backticks(text: str) -> str:
     """
@@ -45,13 +49,14 @@ def _strip_surrounding_backticks(text: str) -> str:
     stripped = text.strip()
     if stripped.startswith("```") and stripped.endswith("```"):
         return stripped[3:-3].strip()
-    
+
     elif stripped.startswith("``") and stripped.endswith("``"):
         return stripped[2:-2].strip()
-    
+
     elif stripped.startswith("`") and stripped.endswith("`"):
         return stripped[1:-1].strip()
     return text
+
 
 def generate_commit(diffs: str, model_name: str = "sonar-pro") -> tuple[bool, str]:
     """
@@ -70,26 +75,31 @@ def generate_commit(diffs: str, model_name: str = "sonar-pro") -> tuple[bool, st
     """
 
     # Initialize the client (uses PERPLEXITY_API_KEY environment variable)
-    client = Perplexity()
+    client = OllamaLLM(model="llama3.2")
+    prompt = _generate_prompt(diffs)
 
-    template = _generate_prompt(diffs)
+    chain = prompt | client
 
-    try:
-        # Make the API call
-        completion = client.chat.completions.create(
-            model=model_name,
-            messages=[{"role": "user", "content": template}],
-            stream=False,
-        )
-        content = completion.choices[0].message.content
-        text = content if isinstance(content, str) else (str(content) if content is not None else "")
-        return True, _strip_surrounding_backticks(text)
+    # template = _generate_prompt(diffs)
 
-    except BadRequestError as e:
-        return False, str(e)
+    # try:
+    #     # Make the API call
+    #     completion = client.chat.completions.create(
+    #         model=model_name,
+    #         messages=[{"role": "user", "content": template}],
+    #         stream=False,
+    #     )
+    #     content = completion.choices[0].message.content
+    #     text = content if isinstance(content, str) else (str(content) if content is not None else "")
+    #     return True, _strip_surrounding_backticks(text)
 
-    except RateLimitError as e:
-        return False, str(e)
+    # except BadRequestError as e:
+    #     return False, str(e)
 
-    except APIStatusError as e:
-        return False, str(e)
+    # except RateLimitError as e:
+    #     return False, str(e)
+
+    # except APIStatusError as e:
+    #     return False, str(e)
+
+    return True, chain.invoke({"diffs": diffs})
