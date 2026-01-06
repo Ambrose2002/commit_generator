@@ -1,5 +1,4 @@
 from perplexity import Perplexity, BadRequestError, RateLimitError, APIStatusError
-import re
 
 def _generate_prompt(diffs: str) -> str:
     """Generate a prompt template for creating a Conventional Commits message from git diffs.
