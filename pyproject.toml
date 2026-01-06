@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "commit-generator"
+version = "0.1.0"
+description = "Generate Conventional Commits from staged diffs using Perplexity"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+	"perplexityai>=0.8",
+]
+
+[project.scripts]
+cgm = "app:main"
+
+[tool.setuptools]
+py-modules = ["app", "commits", "git_cli"]
+package-dir = {"" = "src"}
