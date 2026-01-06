@@ -5,7 +5,12 @@ CLI helper that drafts Conventional Commits from your staged diffs using the Per
 ## Install
 - Python 3.10+ required.
 - From the repo root, install with console entrypoint: `pip install -e .`
-- Set your API key: `export PERPLEXITY_API_KEY=<key>`
+- Set your API key (macOS zsh):
+	- One-off for current shell: `export PERPLEXITY_API_KEY=<key>`
+	- Persist for all new terminals:
+		- `echo 'export PERPLEXITY_API_KEY=<key>' >> ~/.zshrc`
+		- `source ~/.zshrc`
+	- Verify: `echo $PERPLEXITY_API_KEY`
 
 ## Usage
 1. Stage changes in the target repo: `git add ...`
@@ -19,4 +24,5 @@ CLI helper that drafts Conventional Commits from your staged diffs using the Per
 
 ## Troubleshooting
 - If you see API errors, verify `PERPLEXITY_API_KEY` is set and your network allows outbound requests.
+- You do not need to re-export the key when changing directories; you do need to open a new terminal (or `source ~/.zshrc`) after updating it.
 - If git commands fail, confirm the path you pass points to a git repository with staged changes.
