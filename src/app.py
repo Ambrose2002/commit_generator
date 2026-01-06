@@ -22,11 +22,13 @@ def run(file_path: str) -> str:
         str: The generated commit message if successful, "No diffs found" if
              no diffs are available, or an empty string if message generation fails.
     """
+    print("Getting diff...")
     success, diffs = get_diff(file_path)
 
     if not success or not diffs:
         return "No diffs found"
 
+    print("Getting commit message...")
     success, message = generate_commit(diffs, model_name=MODEL)
 
     if success:
@@ -48,7 +50,9 @@ def main() -> int:
         print("Error: commit message generation failed")
         return 1
 
+    print("Message: \n")
     print(message)
+    print("\n")
     response = input("Do you want to commit with this message? y/n: ")
     if response.lower() == "y":
         print("Commiting changes...")

@@ -1,7 +1,7 @@
 from perplexity import Perplexity, BadRequestError, RateLimitError, APIStatusError
 import re
 
-def generate_prompt(diffs: str) -> str:
+def _generate_prompt(diffs: str) -> str:
     """Generate a prompt template for creating a Conventional Commits message from git diffs.
 
     This function constructs a detailed prompt instruction that guides an AI model
@@ -39,30 +39,20 @@ def generate_prompt(diffs: str) -> str:
 
     return template
 
-def _sanitize_commit_text(text: str) -> str:
-    """Remove surrounding Markdown/code fences and quotes if present."""
-    s = text.strip()
-
-    # Triple backtick block with optional language
-    m = re.match(r"^```[a-zA-Z0-9+\-_.]*\n([\s\S]*?)\n```$", s)
-    if m:
-        return m.group(1).strip()
-
-    # Inline or generic fenced block on one line
-    m = re.match(r"^```([\s\S]*?)```$", s)
-    if m:
-        return m.group(1).strip()
-
-    # Any surrounding backticks (1-3)
-    m = re.match(r"^`{1,3}([\s\S]*?)`{1,3}$", s)
-    if m:
-        return m.group(1).strip()
-
-    # Surrounding single or double quotes
-    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
-        return s[1:-1].strip()
-
-    return s
+def _strip_surrounding_backticks(text: str) -> str:
+    """
+    Remove surrounding triple backticks from a string if present.
+    """
+    stripped = text.strip()
+    if stripped.startswith("```") and stripped.endswith("```"):
+        return stripped[3:-3].strip()
+    
+    elif stripped.startswith("``") and stripped.endswith("``"):
+        return stripped[2:-2].strip()
+    
+    elif stripped.startswith("`") and stripped.endswith("`"):
+        return stripped[1:-1].strip()
+    return text
 
 def generate_commit(diffs: str, model_name: str = "sonar-pro") -> tuple[bool, str]:
     """
@@ -83,7 +73,7 @@ def generate_commit(diffs: str, model_name: str = "sonar-pro") -> tuple[bool, st
     # Initialize the client (uses PERPLEXITY_API_KEY environment variable)
     client = Perplexity()
 
-    template = generate_prompt(diffs)
+    template = _generate_prompt(diffs)
 
     try:
         # Make the API call
@@ -94,7 +84,7 @@ def generate_commit(diffs: str, model_name: str = "sonar-pro") -> tuple[bool, st
         )
         content = completion.choices[0].message.content
         text = content if isinstance(content, str) else (str(content) if content is not None else "")
-        return True, _sanitize_commit_text(text)
+        return True, _strip_surrounding_backticks(text)
 
     except BadRequestError as e:
         return False, str(e)
