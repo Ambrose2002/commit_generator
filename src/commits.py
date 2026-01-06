@@ -38,7 +38,7 @@ def generate_prompt(diffs: str) -> str:
     return template
 
 
-def generate_commit(diffs: str, model_name: str = "sonar-pro"):
+def generate_commit(diffs: str, model_name: str = "sonar-pro") -> tuple[bool, str]:
     """
     Generate a commit message using the Perplexity API based on provided diffs.
     
@@ -66,7 +66,11 @@ def generate_commit(diffs: str, model_name: str = "sonar-pro"):
             messages=[{"role": "user", "content": template}],
             stream=False,
         )
-        return completion.choices[0].message.content
+        content = completion.choices[0].message.content
+        if isinstance(content, str):
+            return True, content
+        else:
+            return True, str(content) if content is not None else ""
 
     except BadRequestError as e:
         return False, str(e)
@@ -77,5 +81,3 @@ def generate_commit(diffs: str, model_name: str = "sonar-pro"):
     except APIStatusError as e:
         return False, str(e)
 
-
-print(generate_commit("+Hello"))
