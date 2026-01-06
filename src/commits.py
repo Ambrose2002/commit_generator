@@ -1,5 +1,5 @@
 from perplexity import Perplexity, BadRequestError, RateLimitError, APIStatusError
-
+import re
 
 def generate_prompt(diffs: str) -> str:
     """Generate a prompt template for creating a Conventional Commits message from git diffs.
@@ -33,23 +33,49 @@ def generate_prompt(diffs: str) -> str:
         - No scope and no ticket footers.
         - Summarize what and why from the diff; do not invent changes.
         - Return only the commit message text.
+        - Do NOT use Markdown, code fences, backticks, or quotes around the message.
+
     """
 
     return template
 
+def _sanitize_commit_text(text: str) -> str:
+    """Remove surrounding Markdown/code fences and quotes if present."""
+    s = text.strip()
+
+    # Triple backtick block with optional language
+    m = re.match(r"^```[a-zA-Z0-9+\-_.]*\n([\s\S]*?)\n```$", s)
+    if m:
+        return m.group(1).strip()
+
+    # Inline or generic fenced block on one line
+    m = re.match(r"^```([\s\S]*?)```$", s)
+    if m:
+        return m.group(1).strip()
+
+    # Any surrounding backticks (1-3)
+    m = re.match(r"^`{1,3}([\s\S]*?)`{1,3}$", s)
+    if m:
+        return m.group(1).strip()
+
+    # Surrounding single or double quotes
+    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+        return s[1:-1].strip()
+
+    return s
 
 def generate_commit(diffs: str, model_name: str = "sonar-pro") -> tuple[bool, str]:
     """
     Generate a commit message using the Perplexity API based on provided diffs.
-    
+
     Args:
         diffs (str): The diff content to generate a commit message for.
         model_name (str, optional): The model to use for generation. Defaults to "sonar-pro".
-    
+
     Returns:
         str: The generated commit message on success.
         tuple: A tuple of (False, error_message) if a BadRequestError, RateLimitError, or APIStatusError occurs.
-    
+
     Raises:
         Handles BadRequestError, RateLimitError, and APIStatusError internally and returns False with error message.
     """
@@ -67,10 +93,8 @@ def generate_commit(diffs: str, model_name: str = "sonar-pro") -> tuple[bool, st
             stream=False,
         )
         content = completion.choices[0].message.content
-        if isinstance(content, str):
-            return True, content
-        else:
-            return True, str(content) if content is not None else ""
+        text = content if isinstance(content, str) else (str(content) if content is not None else "")
+        return True, _sanitize_commit_text(text)
 
     except BadRequestError as e:
         return False, str(e)
@@ -80,4 +104,3 @@ def generate_commit(diffs: str, model_name: str = "sonar-pro") -> tuple[bool, st
 
     except APIStatusError as e:
         return False, str(e)
-
